@@ -1,6 +1,6 @@
-# rotatingtest
+# Word Ring
 
-A new Flutter application.
+A simple flutter game, where you need to find words by rotating concentric rings. Word Cookies/Wordscapes are similar type games. I made this mainly to teach myself flutter. 
 
 ## Getting Started
 
