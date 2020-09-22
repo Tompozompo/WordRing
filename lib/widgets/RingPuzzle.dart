@@ -11,11 +11,9 @@ import '../models/RingSegmentValueNotifier.dart';
 
 class RingPuzzle extends StatelessWidget {
   final RingPuzzleModel model;
-  final AnimationController transformController;
-  final AnimationController centerController;
   final GlobalKey containerKey = GlobalKey();
 
-  RingPuzzle(this.model, this.transformController, this.centerController);
+  RingPuzzle(this.model);
 
   List<Widget> _getSegments(double ringSize) {
     var circles = List<Widget>();
@@ -27,7 +25,7 @@ class RingPuzzle extends StatelessWidget {
             ValueListenableBuilder(
                 valueListenable: segmentValueNotifier,
                 builder: (context, segmentModel, child) {
-                  return RingSegment(model, segmentModel, id, transformController, containerKey,
+                  return RingSegment(model, segmentModel, containerKey,
                       child: LetterSegment(segmentModel)
                   );
                 }
@@ -103,7 +101,7 @@ class RingPuzzle extends StatelessWidget {
                           ),
                         ),
                       ),
-                      StaticCircle(model.ringSize - model.padding, model.centerLetter, centerController),
+                      StaticCircle(model.ringSize - model.padding, model.centerLetter, model.centerController),
 //                      Transform.rotate(
 //                        angle: math.pi / 2,
 //                        child: ClipPath(
@@ -150,7 +148,13 @@ class RingPuzzle extends StatelessWidget {
                 );
               } else {
                 debugPrint("Loading");
-                return CircularProgressIndicator();
+                return Container(
+                  width: 2*radius,
+                  height: 2*radius,
+                  child: Center(
+                      child: CircularProgressIndicator()
+                  )
+                );
               }
             },
           );
@@ -162,12 +166,10 @@ class RingPuzzle extends StatelessWidget {
 class RingSegment extends StatelessWidget {
   final RingPuzzleModel puzzleModel;
   final RingSegmentModel segmentModel;
-  final int id;
-  final AnimationController controller;
   final GlobalKey containerKey;
   final Widget child;
 
-  RingSegment(this.puzzleModel, this.segmentModel, this.id, this.controller, this.containerKey, {this.child});
+  RingSegment(this.puzzleModel, this.segmentModel, this.containerKey, {this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +228,7 @@ class RingSegment extends StatelessWidget {
   void _panStart(BuildContext context, DragStartDetails details) {
     RenderBox box = containerKey.currentContext.findRenderObject();
     Offset localPos = box.globalToLocal(details.globalPosition);
-    puzzleModel.rotationStart(localPos, id);
+    puzzleModel.rotationStart(localPos, segmentModel.id);
   }
 
   void _panEnd(BuildContext context, DragEndDetails details) {

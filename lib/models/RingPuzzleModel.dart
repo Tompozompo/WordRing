@@ -2,41 +2,41 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:rotatingtest/helpers/RandomHelper.dart';
-import 'package:rotatingtest/helpers/WordManager.dart';
 
 import 'RingSegmentValueNotifier.dart';
 
 class RingPuzzleModel {
   final int padding = 5;
-  final _streamController = new StreamController<List<String>>();
+  final _streamController = StreamController<List<String>>.broadcast();
 
   //Params
   final int ringCount;
   final int segmentCount;
   final String centerLetter;
+  final AnimationController transformController;
+  final AnimationController centerController;
   double radius;
+  List<Function> endCallbacks = List<Function>();
 
   //State
-  Queue<UndoSegment> undoQueue = new Queue<UndoSegment>();
-  List<RingSegmentModel> initSegments = new List<RingSegmentModel>();
-  List<RingSegmentValueNotifier> segmentsValueNotifiers = new List<RingSegmentValueNotifier>();
-  Set<String> words = new Set<String>();
-  Set<String> foundWords = new Set<String>();
-  AnimationController transformController;
-  AnimationController centerController;
+  Queue<UndoSegment> undoQueue = Queue<UndoSegment>();
+  List<RingSegmentModel> initSegments = List<RingSegmentModel>();
+  List<RingSegmentValueNotifier> segmentsValueNotifiers = List<RingSegmentValueNotifier>();
+  Set<String> words = Set<String>();
+  Set<String> foundWords = Set<String>();
 
   //Rotation+Translation
   Animation<double> _animation;
   RingSegmentModel selectedSegment;
-  List<OverflowSegment> overflowSegments = new List<OverflowSegment>();
-  List<OverflowSegment> underflowSegments = new List<OverflowSegment>();
+  List<OverflowSegment> overflowSegments = List<OverflowSegment>();
+  List<OverflowSegment> underflowSegments = List<OverflowSegment>();
   double startingAngle;
   Offset startingOffset;
 
-  RingPuzzleModel(this.ringCount, this.segmentCount, this.centerLetter, Function(int, int, int) getData) {
+  RingPuzzleModel(this.ringCount, this.segmentCount, this.centerLetter, this.transformController, this.centerController, Function(int, int, int) getData) {
     for (int i = 0; i < ringCount; i++) {
       for (int j = 0; j < segmentCount; j++) {
         double angle = (j * 2 * math.pi / segmentCount);
@@ -44,6 +44,9 @@ class RingPuzzleModel {
         segmentsValueNotifiers.add(RingSegmentValueNotifier(RingSegmentModel(id, angle, getData(i, j, id))));
       }
     }
+    segmentsValueNotifiers.forEach((element) {
+      initSegments.add(element.value.clone());
+    });
   }
 
   void dispose() {
@@ -95,15 +98,21 @@ class RingPuzzleModel {
 
   //#endregion Getters
 
-  //#region Functions
+  //#region Word Processing
 
   void checkWords() {
-    var r = segmentsValueNotifiers.firstWhere((element) => _closeEnoughWrapping(element.value.angle, 0,  math.pi / segmentCount / 4, math.pi * 2));
+    selectedSegment = null;
+    var r = segmentsValueNotifiers.firstWhere((element) => _closeEnoughWrapping(element.value.angle, 0,  math.pi / segmentCount / 8, math.pi * 2));
+    debugPrint("id ${r.value.id}");
+    debugPrint("id ${r.value.angle}");
     _selectSegment(r.value.id);
     String l1 = selectedRow.map((e) => e.value.data).join();
     String l2 = mirrorRow.map((e) => e.value.data).join();
     var forward = (l1.split('').reversed.join() + centerLetter + l2).toLowerCase();
-    var found = WordManager.findWords(new List<String>()..add(forward));
+    var found = words.where((element) =>
+    forward.indexOf(element) != -1 && forward.indexOf(element) > ringCount - element.length && forward.indexOf(element) <= ringCount
+    ).toSet();
+    debugPrint("found $found");
     foundWords = foundWords.union(found);
     if(found.isNotEmpty) {
       found.forEach((element) {
@@ -124,7 +133,16 @@ class RingPuzzleModel {
         }
       });
     }
+    selectedSegment = null;
+    if(foundWords.length == words.length) {
+      endCallbacks.forEach((element) => element());
+    }
   }
+
+
+  //#endregion Word Processing
+
+  //#region Functions
 
   void undo() {
     //TODO: does not work after shuffle
@@ -174,7 +192,6 @@ class RingPuzzleModel {
   }
 
   void animatedRotateRing(int id, int segments) {
-    debugPrint("animatedRotateRing");
     double angle = segments * 2 * math.pi / segmentCount;
     _selectSegment(id);
     _animation = new Tween<double>(
@@ -324,6 +341,7 @@ class RingPuzzleModel {
     if (status == AnimationStatus.completed) {
       _animation.removeStatusListener(_checkWordsOnComplete);
       checkWords();
+      selectedSegment = null;
     }
   }
 
@@ -339,6 +357,7 @@ class RingPuzzleModel {
         checkWords();
         selectedSegment = null;
       } else {
+        selectedSegment = null;
         _selectSegment(nextId);
         _shuffle(nextId);
       }
@@ -412,7 +431,8 @@ class RingPuzzleModel {
   //#region Helper
 
   void _selectSegment(int id) {
-    selectedSegment = segmentsValueNotifiers[id].value;
+    if(selectedSegment == null)
+      selectedSegment = segmentsValueNotifiers[id].value;
   }
 
   bool _closeEnough(double d1, double d2, double delta) {

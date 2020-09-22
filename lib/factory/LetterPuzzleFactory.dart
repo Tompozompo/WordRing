@@ -1,9 +1,9 @@
+import 'dart:async' show Future;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/cupertino.dart';
-
 import 'package:rotatingtest/helpers/RandomHelper.dart';
 import 'package:rotatingtest/helpers/WordManager.dart';
 
@@ -11,14 +11,15 @@ import '../models/RingPuzzleModel.dart';
 import 'PuzzleFactory.dart';
 
 class LetterPuzzleFactory implements PuzzleFactory {
+
   @override
-  Future<RingPuzzleModel> randomPuzzle(int ringCount, int segmentCount) async {
+  Future<RingPuzzleModel> randomPuzzle(int ringCount, int segmentCount, AnimationController transformController, AnimationController centerController) async {
     debugPrint("randomPuzzle");
     var centerLetter = RandomHelper.getRandomString(1);
     List<String> rings = new List.generate(ringCount, (index) => RandomHelper.getRandomString(segmentCount));
     rings.forEach(debugPrint);
     RingPuzzleModel m = new RingPuzzleModel(
-        ringCount, segmentCount, centerLetter, (ringIndex, segmentIndex, id) => rings[ringIndex][segmentIndex]
+        ringCount, segmentCount, centerLetter, transformController, centerController, (ringIndex, segmentIndex, id) => rings[ringIndex][segmentIndex]
     );
 
     for (int i = 0; i < 0; i++) {

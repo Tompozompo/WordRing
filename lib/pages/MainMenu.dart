@@ -1,18 +1,16 @@
 import 'dart:async';
 
+import 'package:animated_background/animated_background.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:rotatingtest/factory/LetterPuzzleFactory.dart';
+import 'package:rotatingtest/background/SpaceBackground.dart';
 import 'package:rotatingtest/models/RingPuzzleModel.dart';
+import 'package:rotatingtest/pages/PuzzleListPage.dart';
+import 'package:rotatingtest/routes/FadeRoute.dart';
+import 'package:rotatingtest/routes/ScaleRoute.dart';
+import 'package:rotatingtest/widgets/BorderedLetter.dart';
 import 'package:rotatingtest/widgets/RingPuzzle.dart';
 
 import 'GamePage.dart';
-
-import '../factory/PuzzleFactory.dart';
-import '../models/TimerModel.dart';
-import '../widgets/BrightnessToggle.dart';
-import '../widgets/ColorPicker.dart';
-import '../models/ThemeModel.dart';
 
 class MainMenu extends StatefulWidget {
 
@@ -21,9 +19,6 @@ class MainMenu extends StatefulWidget {
 }
 
 class MainMenuState extends State<MainMenu> with TickerProviderStateMixin {
-  double ringCount = 3;
-  double segmentCount = 8;
-  PuzzleFactory factory = new LetterPuzzleFactory();
   AnimationController _transformController;
   RingPuzzleModel _iconModel;
   Timer timer;
@@ -48,12 +43,10 @@ class MainMenuState extends State<MainMenu> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     var words = ["OIRN", "WRDG"];
     _iconModel = new RingPuzzleModel(
-        2, 4, "", (ringIndex, segmentIndex, id) => words[ringIndex][segmentIndex]
+        2, 4, "", _transformController, null, (ringIndex, segmentIndex, id) => words[ringIndex][segmentIndex]
     );
-    _iconModel.transformController = _transformController;
     timer?.cancel();
     timer = Timer.periodic(Duration(seconds: 5), (Timer t) {
-      debugPrint("${t.tick}");
       if (t.tick % 4 == 1) {
         _iconModel.animatedRotateRing(0, -1);
       } else if (t.tick % 4 == 2) {
@@ -65,86 +58,81 @@ class MainMenuState extends State<MainMenu> with TickerProviderStateMixin {
       }
     });
     return Scaffold(
-        appBar: AppBar(
-            elevation: 0.0,
-            backgroundColor: Theme
-                .of(context)
-                .scaffoldBackgroundColor,
-            actions: <Widget>[
-              BrightnessToggle(),
-              ColorPicker(),
-            ]
-        ),
-        body: Consumer<ThemeModel>(
-            builder: (context, theme, child) {
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.max,
-                children: <Widget>[
-                  IgnorePointer(
-                    child: Container(
-                        width: 300,
-                        height: 300,
-                      child: RingPuzzle(_iconModel, _transformController, null)
+        backgroundColor: const Color(0xFF000000),
+        body: AnimatedBackground(
+          behaviour: false ? SpaceBehaviour() : RandomParticleBehaviour(
+            options: ParticleOptions(
+              baseColor: Colors.white,
+              spawnOpacity: 0.2,
+              opacityChangeRate: 0.1,
+              minOpacity: 0.2,
+              maxOpacity: 0.5,
+              spawnMinSpeed: 0.5,
+              spawnMaxSpeed: 2.0,
+              spawnMinRadius: 1.0,
+              spawnMaxRadius: 1.5,
+              particleCount: 100,
+            ),
+            paint: Paint()
+              ..style = PaintingStyle.fill
+              ..strokeWidth = 1.0,
+          ),
+          vsync: this,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.max,
+            children: <Widget>[
+              Spacer(),
+              Row(
+                children: [
+                  Spacer(),
+                  Expanded(
+                    flex: 6,
+                    child: IgnorePointer(
+                      child: RingPuzzle(_iconModel),
                     ),
                   ),
-                  Slider.adaptive(
-                    value: ringCount,
-                    onChanged: (count) {
-                      setState(() => ringCount = count);
-                    },
-                    divisions: 3,
-                    min: 3,
-                    max: 6,
-                    label: '$ringCount',
-                  ),
-                  Slider.adaptive(
-                    value: segmentCount,
-                    onChanged: (count) {
-                      setState(() => segmentCount = count);
-                    },
-                    divisions: 4,
-                    min: 6,
-                    max: 14,
-                    label: '${segmentCount.round()}',
-                  ),
                   Spacer(),
-                  Row(
-                      children: <Widget>[
-                        Spacer(),
-                        Expanded(
-                          flex: 2,
-                          child: RaisedButton(
-                            elevation: 10,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(50.0),
-                              side: BorderSide(),
+                ],
+              ),
+              Spacer(flex: 2),
+              Row(
+                  children: <Widget>[
+                    Spacer(),
+                    Expanded(
+                      flex: 3,
+                      child: RaisedButton(
+                        elevation: 10,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50.0),
+                          side: BorderSide(),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(5.0),
+                          child: SizedBox(
+                            height: 50,
+                            child: FittedBox(
+                                fit: BoxFit.contain,
+                                child: BorderedLetter('Play')
                             ),
-                            child: Text('Play',
-                              style: Theme.of(context).textTheme.headline3
-                            ),
-                            onPressed: () {
-                              Provider.of<TimerModel>(context, listen: false).restart();
-                              factory.randomPuzzle(ringCount.round(), segmentCount.round()).then((value) {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) {
-                                      return GamePage(value);
-                                    })
-                                );
-                              });
-                            },
                           ),
                         ),
-                        Spacer(),
-                      ]
-                  ),
-                  Spacer(
-                    flex: 1,
-                  ),
-                ],
-              );
-            }
+                        onPressed: () {
+                          Navigator.push(context, FadeRoute(
+                          builder: (context) => GamePage(
+                            1
+                          )));
+                        },
+                      ),
+                    ),
+                    Spacer(),
+                  ]
+              ),
+              Spacer(
+                flex: 1,
+              ),
+            ],
+          ),
         )
     );
   }

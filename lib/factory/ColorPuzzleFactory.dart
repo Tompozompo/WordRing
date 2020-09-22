@@ -12,8 +12,8 @@ class ColorPuzzleFactory implements PuzzleFactory {
   static List<Color> rainbow = [Colors.blue, Colors.green, Colors.yellow, Colors.orange, Colors.red, Colors.purple];
 
   @override
-  Future<RingPuzzleModel> randomPuzzle(int ringCount, int segmentCount) async {
-    RingPuzzleModel m = new RingPuzzleModel(ringCount, segmentCount, "", (i, j, id) => rainbow[i]);
+  Future<RingPuzzleModel> randomPuzzle(int ringCount, int segmentCount, AnimationController transformController, AnimationController centerController) async {
+    RingPuzzleModel m = new RingPuzzleModel(ringCount, segmentCount, "", transformController, centerController, (i, j, id) => rainbow[i]);
 
     for(int i = 0; i < 15; i++) {
       int id = RandomHelper.getRandomInt(0, ringCount * segmentCount);
